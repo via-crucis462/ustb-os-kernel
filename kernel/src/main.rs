@@ -1,7 +1,17 @@
 #![no_std]
 #![no_main]
+#![feature(alloc_error_handler)]
 
+extern crate alloc;
+
+mod config;
+mod mm;
+mod loader;
+mod sync;
+mod syscall;
+mod trap;
 mod utils;
+mod batch;
 mod boot;
 
 use crate::utils::console;
@@ -17,6 +27,9 @@ pub fn clear_bss() {
 
 fn main() {
     clear_bss();
+    mm::init();
     println!("Hello, world!");
-    panic!("Shutdown machine!");
+    trap::init();
+    batch::init();
+    batch::run_next_app();
 }

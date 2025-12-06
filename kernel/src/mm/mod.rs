@@ -1,0 +1,59 @@
+use buddy_system_allocator::LockedHeap;
+use alloc::vec::Vec;
+
+const HEAP_ORDER: usize = 32; // link list length
+
+#[global_allocator]
+static HEAP_ALLOCATOR: LockedHeap<HEAP_ORDER> = LockedHeap::empty();
+
+const KERNEL_HEAP_SIZE: usize = 0x20_0000;
+
+static mut HEAP_SPACE: [u8; KERNEL_HEAP_SIZE] = [0; KERNEL_HEAP_SIZE];
+
+pub fn init() {
+    unsafe {
+        HEAP_ALLOCATOR.lock().init(HEAP_SPACE.as_ptr() as usize, KERNEL_HEAP_SIZE);
+    }
+}
+
+#[alloc_error_handler]
+pub fn handle_alloc_error(layout: core::alloc::Layout) -> ! {
+    panic!("Heap allocation error, layout = {:?}", layout);
+}
+
+#[allow(unused)]
+pub fn translated_byte_buffer(token: usize, ptr: *const u8, len: usize) -> Vec<&'static mut [u8]> {
+    // TODO: Implement actual translation using the token (page table root)
+    // For now, assuming identity mapping or that we can access the memory directly.
+    let mut buffers = Vec::new();
+    unsafe {
+        buffers.push(core::slice::from_raw_parts_mut(ptr as *mut u8, len));
+    }
+    buffers
+}
+
+#[allow(unused)]
+pub fn heap_test() {
+    use alloc::boxed::Box;
+    use alloc::vec::Vec;
+    extern "C" {
+        fn sbss();
+        fn ebss();
+    }
+    let bss_range = sbss as usize..ebss as usize;
+    let a = Box::new(5);
+    assert_eq!(*a, 5);
+    assert!(bss_range.contains(&(a.as_ref() as *const _ as usize)));
+    drop(a);
+    let mut v: Vec<usize> = Vec::new();
+    for i in 0..500 {
+        v.push(i);
+    }
+    for (i, val) in v.iter().take(500).enumerate() {
+        assert_eq!(*val, i);
+    }
+    assert!(bss_range.contains(&(v.as_ptr() as usize)));
+    drop(v);
+    use crate::println;
+    println!("heap_test passed!");
+}

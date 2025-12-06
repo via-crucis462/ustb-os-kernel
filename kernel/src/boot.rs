@@ -2,6 +2,8 @@ use core::arch::global_asm;
 
 const BOOT_STACK_SIZE: usize = 4096 * 16;
 
+global_asm!(include_str!("link_app.S"));
+
 global_asm!(
     r#"
     .section .text.entry
