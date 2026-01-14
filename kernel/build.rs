@@ -4,10 +4,11 @@ use std::{
     path::Path,
 };
 
-static TARGET_PATH: &str = "../user/target/riscv64gc-unknown-none-elf/release/";
+static TARGET_PATH: &str = "../user/build/";
 
 fn main() {
-    println!("cargo:rerun-if-changed=../user/src/");
+    println!("cargo:rerun-if-changed=../user/c/apps/");
+    println!("cargo:rerun-if-changed=../user/rust/src/");
     println!("cargo:rerun-if-changed={}", TARGET_PATH);
     insert_app_data().unwrap();
 }

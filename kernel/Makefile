@@ -28,3 +28,4 @@ run: clean build
 
 clean:
 	cargo clean
+	cd ../user && make clean
