@@ -38,6 +38,13 @@ __alltraps:
     call trap_handler
 
 __restore:
+    mv sp, a0
+    .globl __restore_sp
+__restore_sp:
+    # Debug: Check sp
+    mv a0, sp
+    # call debug_check_restore
+
     # now sp->kernel stack(after allocated), sscratch->user stack
     # restore sstatus/sepc
     ld t0, 32*8(sp)

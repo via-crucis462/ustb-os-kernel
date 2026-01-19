@@ -24,10 +24,10 @@ impl TaskContext {
     /// Create a new task context with a trap return addr and a kernel stack pointer
     pub fn goto_restore(kstack_ptr: usize) -> Self {
         extern "C" {
-            fn __restore();
+            fn __restore_sp();
         }
         Self {
-            ra: __restore as usize,
+            ra: __restore_sp as usize,
             sp: kstack_ptr,
             s: [0; 12],
         }

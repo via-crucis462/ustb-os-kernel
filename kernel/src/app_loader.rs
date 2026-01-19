@@ -10,7 +10,6 @@ use alloc::vec;
 use alloc::string::String;
 use crate::config::{APP_SIZE_LIMIT,APP_BASE_ADDRESS,USER_STACK_SIZE,KERNEL_STACK_SIZE,MAX_APP_NUM};
 
-
 #[repr(align(4096))]
 #[derive(Copy, Clone)]
 struct KernelStack {
@@ -23,14 +22,13 @@ struct UserStack {
     data: [u8; USER_STACK_SIZE],
 }
 
-static KERNEL_STACK: [KernelStack; MAX_APP_NUM] = [KernelStack {
+static mut KERNEL_STACK: [KernelStack; MAX_APP_NUM] = [KernelStack {
     data: [0; KERNEL_STACK_SIZE],
 }; MAX_APP_NUM];
 
-static USER_STACK: [UserStack; MAX_APP_NUM] = [UserStack {
+static mut USER_STACK: [UserStack; MAX_APP_NUM] = [UserStack {
     data: [0; USER_STACK_SIZE],
 }; MAX_APP_NUM];
-
 
 impl KernelStack {
     fn get_sp(&self) -> usize {
@@ -72,10 +70,12 @@ pub fn load_apps() {
     }
     let num_app_ptr = _num_app as usize as *const usize;
     let num_app = get_num_app();
+    println!("[kernel] Loading {} apps", num_app);
     let app_start = unsafe { core::slice::from_raw_parts(num_app_ptr.add(1), num_app + 1) };
     // load apps
     for i in 0..num_app {
         let base_i = get_base_i(i);
+        println!("[kernel] App {} load at {:#x} from {:#x}", i, base_i, app_start[i]);
         // clear region
         (base_i..base_i + APP_SIZE_LIMIT)
             .for_each(|addr| unsafe { (addr as *mut u8).write_volatile(0) });
@@ -86,21 +86,20 @@ pub fn load_apps() {
         let dst = unsafe { core::slice::from_raw_parts_mut(base_i as *mut u8, src.len()) };
         dst.copy_from_slice(src);
     }
-    // Memory fence about fetching the instruction memory
-    // It is guaranteed that a subsequent instruction fetch must
-    // observes all previous writes to the instruction memory.
-    // Therefore, fence.i must be executed after we have loaded
-    // the code of the next app into the instruction memory.
-    // See also: riscv non-priv spec chapter 3, 'Zifencei' extension.
     unsafe {
         asm!("fence.i");
     }
 }
 
-/// get app info with entry and sp and save `TrapContext` in kernel stack
+/// get app info with entry and sp and save  in kernel stack
 pub fn init_app_cx(app_id: usize) -> usize {
-    KERNEL_STACK[app_id].push_context(TrapContext::app_init_context(
-        get_base_i(app_id),
-        USER_STACK[app_id].get_sp(),
-    ))
+    println!("[kernel] init_app_cx for app {}", app_id);
+    let user_stack_top = unsafe { USER_STACK[app_id].get_sp() };
+    unsafe {
+        let ptr = KERNEL_STACK[app_id].push_context(TrapContext::app_init_context(
+            get_base_i(app_id),
+            user_stack_top,
+        ));
+        ptr
+    }
 }

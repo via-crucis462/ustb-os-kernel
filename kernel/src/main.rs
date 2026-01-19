@@ -4,6 +4,7 @@
 
 extern crate alloc;
 
+mod boot;
 mod config;
 mod mm;
 mod loader;
@@ -15,7 +16,7 @@ mod task;
 mod timer;
 mod app_loader;
 
-
+use log::debug;
 use crate::utils::console;
 
 
@@ -29,6 +30,7 @@ pub fn clear_bss() {
 }
 
 fn main() -> ! {
+    debug!("call main");
     clear_bss();
     println!("Hello World!");
     //logging::init();

@@ -1,4 +1,7 @@
-build: clean
+build: binary
+	python3 build.py
+
+binary:
 	cargo build --release
 
 clean:

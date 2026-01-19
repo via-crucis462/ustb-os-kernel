@@ -1,9 +1,10 @@
-use core::fmt::{self, Write};
+use core::fmt::{self, Write, Arguments};
 use crate::utils::sbi::console_putchar;
 
 struct Stdout;
 
 impl Write for Stdout {
+    /// write str to console
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for c in s.chars() {
             console_putchar(c as usize);
@@ -12,22 +13,25 @@ impl Write for Stdout {
     }
 }
 
-pub fn print(args: fmt::Arguments) {
+/// print to the host console using the format string and arguments.
+pub fn _print(args: Arguments) {
     Stdout.write_fmt(args).unwrap();
 }
 
-/// Print! to the host console using the format string and arguments.
+/// Print! macro to the host console using the format string and arguments.
 #[macro_export]
 macro_rules! print {
-    ($fmt: literal $(, $($arg: tt)+)?) => {
-        $crate::console::print(format_args!($fmt $(, $($arg)+)?))
-    }
+    ($($arg:tt)*) => {
+        $crate::console::_print(format_args!("{}", format_args!($($arg)*)))
+    };
 }
 
-/// Println! to the host console using the format string and arguments.
+/// Println! macro to the host console using the format string and arguments.
 #[macro_export]
 macro_rules! println {
-    ($fmt: literal $(, $($arg: tt)+)?) => {
-        $crate::console::print(format_args!(concat!($fmt, "\n") $(, $($arg)+)?))
-    }
+    () => ($crate::print!("\n"));
+    ($($arg:tt)*) => {
+        $crate::print!($($arg)*);
+        $crate::print!("\n")
+    };
 }
