@@ -1,6 +1,7 @@
 //! Process management syscalls
 use crate::{
-    task::{exit_current_and_run_next, get_syscall_times, suspend_current_and_run_next},
+    task::{exit_current_and_run_next, get_syscall_times, suspend_current_and_run_next, 
+           get_current_task_info, get_total_syscall_count},
     timer::get_time_us,
 
 };
@@ -11,6 +12,13 @@ use log::trace;
 pub struct TimeVal {
     pub sec: usize,
     pub usec: usize,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct TaskInfo {
+    pub status: usize,
+    pub syscall_times: usize,
 }
 
 /// task exits and submit an exit code
@@ -40,26 +48,41 @@ pub fn sys_get_time(ts: *mut TimeVal, _tz: usize) -> isize {
     0
 }
 
-// A simple trace syscall implementation
-pub fn sys_trace(trace_request: usize, id: usize, data: usize) -> isize {
-    trace!("kernel: sys_trace");
-    match trace_request {
-        0 => {
-            let addr = id as *const u8;
-            unsafe {
-                return *addr as isize;
+/// simple syscall for tracing
+pub fn sys_trace(request: usize, syscall_id: usize, data: usize) -> isize {
+    trace!("kernel: sys_trace request={}, syscall_id={:#x}", request, syscall_id);    
+    
+    const TRACE_GET_SYSCALL_COUNT: usize = 0x00;
+    const TRACE_GET_TASK_INFO: usize = 0x01;
+    const TRACE_GET_TOTAL_SYSCALLS: usize = 0x02;
+
+    match request {
+        TRACE_GET_SYSCALL_COUNT => {
+            let syscall_id = syscall_id;
+            get_syscall_times(syscall_id) as isize
+        },
+        TRACE_GET_TASK_INFO => {
+            if data == 0 {
+                return -1;
+            }
+            let info_ptr = data as *mut TaskInfo;
+            match get_current_task_info() {
+                Some((status, syscall_times)) => {
+                    unsafe {
+                        (*info_ptr).status = status;
+                        (*info_ptr).syscall_times = syscall_times;
+                    }
+                    0
+                },
+                None => -1,
             }
         },
-        1 => {
-            let addr = id as *mut u8;
-            unsafe {
-                *addr = data as u8;
-            }
-            return 0;
+        TRACE_GET_TOTAL_SYSCALLS => {
+            get_total_syscall_count() as isize
         },
-        2 => {
-            return get_syscall_times(id) as isize;
+        _ => {
+            trace!("Invalid trace request: {}", request);
+            -1
         },
-        _ => return -1,
     }
 }

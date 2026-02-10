@@ -145,6 +145,7 @@ impl TaskManager {
         }
     }
 
+    /// Update the syscall counting times
     fn update_syscall_times(&self, syscall_id: usize) {
         let mut inner = self.inner.exclusive_access();
         let current_task_no = inner.current_task;
@@ -154,6 +155,7 @@ impl TaskManager {
         syscall_times.entry(syscall_id).and_modify(|count| *count += 1 ).or_insert(1);
     }
 
+    /// Get the syscall counting times
     fn get_syscall_times(&self, syscall_id: usize) -> usize {
         let inner = self.inner.exclusive_access();
         let current_task_no = inner.current_task;
@@ -161,6 +163,19 @@ impl TaskManager {
             Some(&count) => return count,
             None => return 0,
         }
+    }
+
+    /// Get current task information
+    /// Returns: (status, syscall_times)
+    fn get_current_task_info(&self) -> Option<(usize, usize)> {
+        
+        None
+    }
+
+    /// Get total syscall count for current task
+    fn get_total_syscall_count(&self) -> usize {
+        
+        0
     }
 }
 
@@ -205,4 +220,14 @@ pub fn update_syscall_times(syscall_id: usize) {
 /// Get syscall count
 pub fn get_syscall_times(syscall_id: usize) -> usize {
     TASK_MANAGER.get_syscall_times(syscall_id)
+}
+
+/// Get current task info
+pub fn get_current_task_info() -> Option<(usize, usize)> {
+    TASK_MANAGER.get_current_task_info()
+}
+
+/// Get total syscall count for current task
+pub fn get_total_syscall_count() -> usize {
+    TASK_MANAGER.get_total_syscall_count()
 }

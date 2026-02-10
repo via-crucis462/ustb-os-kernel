@@ -17,15 +17,18 @@ all: $(OUT_DIR) $(addprefix $(OUT_DIR)/,$(APPS))
 $(OUT_DIR):
 	mkdir -p $(OUT_DIR)
 
-lib.o: lib/lib.c lib/lib.h
-	$(CC) $(CFLAGS) -c lib/lib.c -o lib.o
+lib.o: lib/lib.c lib/lib.h lib/stdio.c lib/stdio.h
+	$(CC) $(CFLAGS) -c lib/lib.c -o lib_core.o
+	$(CC) $(CFLAGS) -c lib/stdio.c -o stdio.o
+	$(LD) -r lib_core.o stdio.o -o $@
+	@rm -f lib_core.o stdio.o
 
 $(OUT_DIR)/%: apps/%.c lib.o ../linker.ld | $(OUT_DIR)
 	$(CC) $(CFLAGS) -c $< -o $*.o
-	$(LD) $(LDFLAGS) -o $@ $*.o lib.o
+	$(LD) $(LDFLAGS) -o $@ lib.o $*.o
 	$(OBJDUMP) -S $@ > $@.asm
 	$(OBJCOPY) --strip-all -O binary $@ $@
 	@rm -f $*.o
 
 clean:
-	rm -f *.o
+	rm -f *.o lib.o

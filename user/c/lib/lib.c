@@ -40,3 +40,15 @@ void exit(int code) {
     syscall(SYSCALL_EXIT, (size_t)code, 0, 0);
     while(1);
 }
+
+isize yield(void) {
+    return syscall(SYSCALL_YIELD, 0, 0, 0);
+}
+
+isize get_time(TimeVal *ts) {
+    return syscall(SYSCALL_GET_TIME, (size_t)ts, 0, 0);
+}
+
+isize trace(size_t request, size_t id, size_t data) {
+    return syscall(SYSCALL_TRACE, request, id, data);
+}
