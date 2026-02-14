@@ -1,58 +1,30 @@
-use buddy_system_allocator::LockedHeap;
-use alloc::vec::Vec;
-use crate::config::KERNEL_HEAP_SIZE;
+//! Memory management implementation
+//!
+//! SV39 page-based virtual-memory architecture for RV64 systems, and
+//! everything about memory management, like frame allocator, page table,
+//! map area and memory set, is implemented here.
+//!
+//! Every task or process has a memory_set to control its virtual memory.
+mod address;
+mod frame_allocator;
+mod heap_allocator;
+mod memory_set;
+mod page_table;
 
-const HEAP_ORDER: usize = 32; // link list length
+use address::VPNRange;
+pub use address::{PhysAddr, PhysPageNum, StepByOne, VirtAddr, VirtPageNum, copy_to_virt};
+pub use frame_allocator::{frame_alloc, frame_dealloc, FrameTracker};
+pub use memory_set::remap_test;
+pub use memory_set::{kernel_token, MapPermission, MemorySet, KERNEL_SPACE};
+use page_table::PTEFlags;
+pub use page_table::{
+    translated_byte_buffer, translated_ref, translated_refmut, translated_str, PageTable,
+    PageTableEntry, UserBuffer, UserBufferIterator,
+};
 
-#[global_allocator]
-static HEAP_ALLOCATOR: LockedHeap<HEAP_ORDER> = LockedHeap::empty();
-
-static mut HEAP_SPACE: [u8; KERNEL_HEAP_SIZE] = [0; KERNEL_HEAP_SIZE];
-
+/// initiate heap allocator, frame allocator and kernel space
 pub fn init() {
-    unsafe {
-        HEAP_ALLOCATOR.lock().init(HEAP_SPACE.as_ptr() as usize, KERNEL_HEAP_SIZE);
-    }
-}
-
-#[alloc_error_handler]
-pub fn handle_alloc_error(layout: core::alloc::Layout) -> ! {
-    panic!("Heap allocation error, layout = {:?}", layout);
-}
-
-#[allow(unused)]
-pub fn translated_byte_buffer(token: usize, ptr: *const u8, len: usize) -> Vec<&'static mut [u8]> {
-    // TODO: Implement actual translation using the token (page table root)
-    // For now, assuming identity mapping or that we can access the memory directly.
-    let mut buffers = Vec::new();
-    unsafe {
-        buffers.push(core::slice::from_raw_parts_mut(ptr as *mut u8, len));
-    }
-    buffers
-}
-
-#[allow(unused)]
-pub fn heap_test() {
-    use alloc::boxed::Box;
-    use alloc::vec::Vec;
-    extern "C" {
-        fn sbss();
-        fn ebss();
-    }
-    let bss_range = sbss as usize..ebss as usize;
-    let a = Box::new(5);
-    assert_eq!(*a, 5);
-    assert!(bss_range.contains(&(a.as_ref() as *const _ as usize)));
-    drop(a);
-    let mut v: Vec<usize> = Vec::new();
-    for i in 0..500 {
-        v.push(i);
-    }
-    for (i, val) in v.iter().take(500).enumerate() {
-        assert_eq!(*val, i);
-    }
-    assert!(bss_range.contains(&(v.as_ptr() as usize)));
-    drop(v);
-    use crate::println;
-    println!("heap_test passed!");
+    heap_allocator::init_heap();
+    frame_allocator::init_frame_allocator();
+    KERNEL_SPACE.exclusive_access().activate();
 }

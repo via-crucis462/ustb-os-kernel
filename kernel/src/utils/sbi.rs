@@ -40,7 +40,7 @@ pub fn console_putchar(c: usize) {
 /// use sbi call to getchar from console (qemu uart handler)
 
 pub fn console_getchar() -> usize {
-    return sbi_call(SBI_CONSOLE_GETCHAR, 0, 0, 0);
+    sbi_call(SBI_CONSOLE_GETCHAR, 0, 0, 0)
 }
 
 pub fn shutdown() -> ! {
