@@ -4,14 +4,22 @@
 
 extern crate alloc;
 
+#[macro_use]
+extern crate bitflags;
+#[macro_use]
+extern crate log;
+
+#[macro_use]
+mod utils;
+
 mod boot;
 mod config;
 mod mm;
-mod loader;
+mod fs;
+mod drivers;
 mod sync;
 mod syscall;
 mod trap;
-mod utils;
 mod task;
 mod timer;
 mod app_loader;
@@ -35,10 +43,12 @@ fn main() -> ! {
     println!("Hello World!");
     //logging::init();
     mm::init();
+    println!("after initproc!");
     trap::init();
-    app_loader::load_apps();
     trap::enable_timer_interrupt();
     timer::set_next_trigger();
-    task::run_first_task();
+    fs::list_apps();
+    task::add_initproc();
+    task::run_tasks();
     panic!("Unreachable in rust_main!");    
 }

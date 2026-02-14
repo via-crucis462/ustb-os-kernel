@@ -2,6 +2,7 @@ ARCH := riscv64
 MODE := release
 TARGET := riscv64gc-unknown-none-elf
 KERNEL := target/riscv64gc-unknown-none-elf/release/kernel
+FS_IMG := ../user/build/fs.img
 
 env:
 	(rustup target list | grep "$(TARGET) (installed)") || rustup target add $(TARGET)
@@ -15,13 +16,21 @@ kernel:
 user:
 	@cd ../user && make build
 
-build: env user kernel
+build: env user kernel fs-img
+
+fs-img: 
+	@make -C ../user build 
+	@rm -f $(FS_IMG)
+	@cd ../easy-fs-fuse && cargo run --release -- -t ../user/build/
+
 
 QEMU_EXEC = qemu-system-riscv64 -machine virt \
 			-kernel ${KERNEL} \
 			-nographic \
 			-smp 1 \
-			-bios default
+			-bios ../bootloader/rustsbi-qemu.bin \
+			-drive file=$(FS_IMG),if=none,format=raw,id=x0 \
+        	-device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 
 run: clean build
 	${QEMU_EXEC}
@@ -29,3 +38,5 @@ run: clean build
 clean:
 	cargo clean
 	cd ../user && make clean
+
+.PHONY: env kernel user build fs-img run clean
