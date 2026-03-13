@@ -5,10 +5,18 @@ edition = "2021"
 
 [dependencies]
 log = "0.4"
-xmas-elf = "0.10" # https://docs.rs/xmas-elf/0.10.0/xmas_elf/
+xmas-elf = "0.9" # https://docs.rs/xmas-elf/0.9.0/xmas_elf/
 bitflags = "1.2.1"
 buddy_system_allocator = "0.6"
-riscv = { git = "https://github.com/rcore-os/riscv", features = ["inline-asm"] }
+riscv = { path = ".cargo/local/riscv", features = ["inline-asm"] }
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
-virtio-drivers = { git = "https://github.com/rcore-os/virtio-drivers", rev = "4ee80e5" }
+virtio-drivers = { path = ".cargo/local/virtio-drivers" }
 easy-fs = { path = "../easy-fs" }
+
+[patch.crates-io]
+bit_field = { path = ".cargo/local/bit_field" }
+bare-metal = { path = ".cargo/local/bare-metal" }
+rustc_version = { path = ".cargo/local/rustc_version" }
+semver = { path = ".cargo/local/semver" }
+semver-parser = { path = ".cargo/local/semver-parser" }
+volatile = { path = ".cargo/local/volatile" }
